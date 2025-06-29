@@ -984,17 +984,42 @@ function TT:SetBackpackToken(tt, id)
 	end
 end
 
+function TT:SetTooltipMoneyFonts()
+	if not GameTooltip.hasMoney then return end
+	
+	local font, fontSize, fontOutline = LSM:Fetch('font', TT.db.font), TT.db.textFontSize, TT.db.fontOutline
+	for i = 1, GameTooltip.numMoneyFrames do
+		local prefixText = _G['GameTooltipMoneyFrame'..i..'PrefixText']
+		local suffixText = _G['GameTooltipMoneyFrame'..i..'SuffixText']
+		local goldText = _G['GameTooltipMoneyFrame'..i..'GoldButtonText']
+		local silverText = _G['GameTooltipMoneyFrame'..i..'SilverButtonText']
+		local copperText = _G['GameTooltipMoneyFrame'..i..'CopperButtonText']
+		
+		if prefixText then prefixText:FontTemplate(font, fontSize, fontOutline) end
+		if suffixText then suffixText:FontTemplate(font, fontSize, fontOutline) end
+		if goldText then goldText:FontTemplate(font, fontSize, fontOutline) end
+		if silverText then silverText:FontTemplate(font, fontSize, fontOutline) end
+		if copperText then copperText:FontTemplate(font, fontSize, fontOutline) end
+	end
+end
+
 function TT:SetTooltipFonts()
 	local font, fontSize, fontOutline = LSM:Fetch('font', TT.db.font), TT.db.textFontSize, TT.db.fontOutline
 	_G.GameTooltipText:FontTemplate(font, fontSize, fontOutline)
 
 	if GameTooltip.hasMoney then
 		for i = 1, GameTooltip.numMoneyFrames do
-			_G['GameTooltipMoneyFrame'..i..'PrefixText']:FontTemplate(font, fontSize, fontOutline)
-			_G['GameTooltipMoneyFrame'..i..'SuffixText']:FontTemplate(font, fontSize, fontOutline)
-			_G['GameTooltipMoneyFrame'..i..'GoldButtonText']:FontTemplate(font, fontSize, fontOutline)
-			_G['GameTooltipMoneyFrame'..i..'SilverButtonText']:FontTemplate(font, fontSize, fontOutline)
-			_G['GameTooltipMoneyFrame'..i..'CopperButtonText']:FontTemplate(font, fontSize, fontOutline)
+			local prefixText = _G['GameTooltipMoneyFrame'..i..'PrefixText']
+			local suffixText = _G['GameTooltipMoneyFrame'..i..'SuffixText']
+			local goldText = _G['GameTooltipMoneyFrame'..i..'GoldButtonText']
+			local silverText = _G['GameTooltipMoneyFrame'..i..'SilverButtonText']
+			local copperText = _G['GameTooltipMoneyFrame'..i..'CopperButtonText']
+			
+			if prefixText then prefixText:FontTemplate(font, fontSize, fontOutline) end
+			if suffixText then suffixText:FontTemplate(font, fontSize, fontOutline) end
+			if goldText then goldText:FontTemplate(font, fontSize, fontOutline) end
+			if silverText then silverText:FontTemplate(font, fontSize, fontOutline) end
+			if copperText then copperText:FontTemplate(font, fontSize, fontOutline) end
 		end
 	end
 
@@ -1058,12 +1083,6 @@ function TT:Initialize()
 	statusText:Point('CENTER', statusBar)
 	statusBar.text = statusText
 
-	if not GameTooltip.hasMoney then -- Force creation of the money lines, so we can set font for it
-		SetTooltipMoney(GameTooltip, 1, nil, '', '')
-		SetTooltipMoney(GameTooltip, 1, nil, '', '')
-		GameTooltip_ClearMoney(GameTooltip)
-	end
-
 	TT:SetTooltipFonts()
 
 	local GameTooltipAnchor = CreateFrame('Frame', 'GameTooltipAnchor', E.UIParent)
@@ -1084,6 +1103,7 @@ function TT:Initialize()
 	TT:SecureHook(GameTooltip, 'SetUnitDebuff', 'SetUnitAura')
 	TT:SecureHookScript(GameTooltip, 'OnTooltipCleared', 'GameTooltip_OnTooltipCleared')
 	TT:SecureHookScript(GameTooltip.StatusBar, 'OnValueChanged', 'GameTooltipStatusBar_OnValueChanged')
+	TT:SecureHook('SetTooltipMoney', 'SetTooltipMoneyFonts')
 
 	if AddTooltipPostCall and not E.Cata then -- exists but doesn't work atm on Cata
 		AddTooltipPostCall(TooltipDataType.Spell, TT.GameTooltip_OnTooltipSetSpell)
