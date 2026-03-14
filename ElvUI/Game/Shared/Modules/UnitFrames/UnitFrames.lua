@@ -1789,6 +1789,113 @@ do
 		UF:DisableBlizzard_DisableFrame(frame)
 	end
 
+	-- Overlay cast bar: avoid iterating CastingBarTypeInfo / indexing GetTypeInfo (forbidden when overlay is parented to addon frame)
+	local finishAnims = { 'CraftingFinish', 'StandardFinish', 'ChannelFinish', 'StageFinish' }
+	local sparkFx = { 'CraftingGlow', 'StandardGlow', 'ChannelShadow' }
+	local defaultFull = 'ui-castingbar-full-standard'
+	local defaultGlow = 'ui-castingbar-full-glow-standard'
+	local defaultFilling = 'ui-castingbar-filling-standard'
+
+	local function InstallOverlayCastBar(frame)
+		if not frame or not frame.StopFinishAnims then return end
+
+		local typeInfo = {
+			filling = defaultFilling,
+			full = defaultFull,
+			glow = defaultGlow,
+			sparkFx = 'StandardGlow',
+			finishAnim = 'StandardFinish',
+		}
+
+		function frame.GetTypeInfo()
+			return typeInfo
+		end
+
+		function frame.PlayFinishAnim()
+			if not frame.playCastFX then return end
+			local barTypeInfo = frame:GetTypeInfo()
+			local playFinish = not barTypeInfo.finishCondition or barTypeInfo.finishCondition(frame)
+			if playFinish then
+				local finishAnim = barTypeInfo.finishAnim and frame[barTypeInfo.finishAnim]
+				if finishAnim and finishAnim.Play then finishAnim:Play() end
+			end
+			-- Skip Empowered branch: comparing frame.barType to CastingBarType.Empowered is forbidden in tainted context
+		end
+
+		function frame.HandleCastStop(event, castID, castComplete, interruptedBy)
+			if not frame:IsVisible() then
+				frame:UpdateShownState(false)
+			end
+			if (frame.casting and event == 'UNIT_SPELLCAST_STOP' and castID == frame.castID) or
+				((frame.channeling or frame.reverseChanneling) and (event == 'UNIT_SPELLCAST_CHANNEL_STOP' or event == 'UNIT_SPELLCAST_EMPOWER_STOP')) then
+				if not castComplete then
+					if event == 'UNIT_SPELLCAST_EMPOWER_STOP' or event == 'UNIT_SPELLCAST_CHANNEL_STOP' then
+						frame:HandleInterruptOrSpellFailed(true, event, castID, interruptedBy)
+						return
+					end
+				end
+				frame:SetStatusBarTexture(defaultFull)
+				if not frame.reverseChanneling then frame:HideSpark() end
+				if frame.Flash then
+					frame.Flash:SetAtlas(defaultGlow)
+					frame.Flash:SetAlpha(0.0)
+					frame.Flash:Show()
+				end
+				if not frame.reverseChanneling and not frame.channeling then
+					frame:SetValue(frame.maxValue)
+					frame:UpdateCastTimeText()
+				end
+				frame:PlayFadeAnim()
+				frame:PlayFinishAnim()
+				if event == 'UNIT_SPELLCAST_STOP' then
+					frame.casting = nil
+				else
+					frame.channeling = nil
+					if frame.reverseChanneling then frame.casting = nil end
+					frame.reverseChanneling = nil
+				end
+			end
+		end
+
+		function frame.StopFinishAnims()
+			if frame.FlashAnim then frame.FlashAnim:Stop() end
+			if frame.FadeOutAnim then frame.FadeOutAnim:Stop() end
+			for _, name in next, finishAnims do
+				local anim = frame[name]
+				if anim and anim.Stop then anim:Stop() end
+			end
+			if frame.StageTiers and type(frame.StageTiers) == 'table' then
+				for i = 1, #frame.StageTiers do
+					local tier = frame.StageTiers[i]
+					if tier then
+						if tier.FlashAnim and tier.FlashAnim.Stop then tier.FlashAnim:Stop() end
+						if tier.FinishAnim and tier.FinishAnim.Stop then tier.FinishAnim:Stop() end
+					end
+				end
+			end
+		end
+
+		function frame.ShowSpark()
+			if frame.Spark then
+				frame.Spark:Show()
+				frame.Spark:SetAtlas('ui-castingbar-pip')
+				frame.Spark.offsetY = 0
+			end
+			for _, name in next, sparkFx do
+				local fx = frame[name]
+				if fx and fx.Hide then fx:Hide() end
+			end
+		end
+
+		function frame.HideSpark()
+			if frame.Spark then frame.Spark:Hide() end
+			for _, name in next, sparkFx do
+				local fx = frame[name]
+				if fx and fx.Hide then fx:Hide() end
+			end
+		end
+	end
+
 	function ElvUF:DisableBlizzard(unit)
 		if not unit then return end
 
@@ -1820,6 +1927,10 @@ do
 					if disable.castbar then
 						HideFrame(_G.PlayerCastingBarFrame)
 						HideFrame(_G.PetCastingBarFrame)
+						if E.Retail then
+							local overlay = _G.OverlayPlayerCastingBarFrame
+							if overlay then InstallOverlayCastBar(overlay) end
+						end
 					end
 				elseif disable.castbar then
 					CastingBarFrame_SetUnit(_G.CastingBarFrame)
