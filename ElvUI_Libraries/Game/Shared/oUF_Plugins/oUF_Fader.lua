@@ -201,14 +201,10 @@ local options = {
 
 			onRangeFrame:Show()
 			tinsert(onRangeObjects, self)
-			if self.RegisterUnitEvent then
-				self:RegisterEvent('UNIT_IN_RANGE_UPDATE', OnUnitInRangeUpdate)
-			end
+			self:RegisterEvent('UNIT_IN_RANGE_UPDATE', OnUnitInRangeUpdate)
 		end,
 		disable = function(self)
-			if self.UnregisterEvent then
-				self:UnregisterEvent('UNIT_IN_RANGE_UPDATE', OnUnitInRangeUpdate)
-			end
+			self:UnregisterEvent('UNIT_IN_RANGE_UPDATE', OnUnitInRangeUpdate)
 			if onRangeFrame then
 				for idx, obj in next, onRangeObjects do
 					if obj == self then
