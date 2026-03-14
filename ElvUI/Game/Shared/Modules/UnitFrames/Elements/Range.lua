@@ -115,7 +115,7 @@ function UF:UpdateRange(unit)
 	if not element then return end
 
 	if not unit then
-		unit = self.unit
+		unit = self.displayedUnit or self.realUnit or self.unit
 	end
 
 	if self.forceInRange or unit == 'player' then

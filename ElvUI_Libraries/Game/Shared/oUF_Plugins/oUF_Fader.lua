@@ -71,7 +71,7 @@ local function Update(self, event, unit)
 	if self.isForced or (not element or not element.count or element.count <= 0) then
 		self:SetAlpha(1)
 		return
-	elseif element.Range and event ~= 'OnRangeUpdate' then
+	elseif element.Range and event ~= 'OnRangeUpdate' and event ~= 'UNIT_IN_RANGE_UPDATE' then
 		return
 	end
 
@@ -161,6 +161,12 @@ local function OnRangeUpdate(frame, elapsed)
 	end
 end
 
+local function OnUnitInRangeUpdate(self)
+	if self.Fader and self.Fader.Range and self:IsVisible() then
+		self.Fader:ForceUpdate('OnRangeUpdate')
+	end
+end
+
 local function OnInstanceDifficulty(self)
 	local element = self.Fader
 	UpdateInstanceDifficulty(element)
@@ -195,8 +201,14 @@ local options = {
 
 			onRangeFrame:Show()
 			tinsert(onRangeObjects, self)
+			if self.RegisterUnitEvent then
+				self:RegisterEvent('UNIT_IN_RANGE_UPDATE', OnUnitInRangeUpdate)
+			end
 		end,
 		disable = function(self)
+			if self.UnregisterEvent then
+				self:UnregisterEvent('UNIT_IN_RANGE_UPDATE', OnUnitInRangeUpdate)
+			end
 			if onRangeFrame then
 				for idx, obj in next, onRangeObjects do
 					if obj == self then
