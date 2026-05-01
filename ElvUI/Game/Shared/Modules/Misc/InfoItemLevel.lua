@@ -13,6 +13,7 @@ local unpack = unpack
 local UnitGUID = UnitGUID
 local UnitExists = UnitExists
 local CreateFrame = CreateFrame
+local C_Secrets_ShouldUnitIdentityBeSecret = C_Secrets and C_Secrets.ShouldUnitIdentityBeSecret
 
 local InspectItems = {
 	'HeadSlot',
@@ -313,7 +314,8 @@ do
 	function M:UpdatePageInfo(frame, which, guid, event)
 		if which == 'Inspect' then M.InspectTimer = nil end -- clear inspect timer
 		if not (which and frame and frame.ItemLevelText) then return end
-		if which == 'Inspect' and (not frame or not frame.unit or (guid and frame:IsShown() and UnitGUID(frame.unit) ~= guid)) then return end
+		if which == 'Inspect' and (not frame or not frame.unit or (guid and frame:IsShown() and E.Retail and C_Secrets_ShouldUnitIdentityBeSecret(frame.unit))) then return end
+		if which == 'Inspect' and guid and frame:IsShown() and UnitGUID(frame.unit) ~= guid then return end
 
 		wipe(iLevelDB)
 
