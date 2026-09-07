@@ -141,12 +141,22 @@ do
 	end -- the normal configure that happens when a plate type changes
 
 	function NP:AuraContainer_RemoveActive(nameplate)
-		for container in next, nameplate.ActiveContainers do
-			container:SetEnabled(false)
-			container:SetShown(false)
+		for auras in next, nameplate.ActiveContainers do
+			auras:SetEnabled(false)
+			auras:SetShown(false)
 
-			nameplate.ActiveContainers[container] = nil
+			nameplate.ActiveContainers[auras] = nil
 		end
+	end
+
+	local units = {} -- similar to UF.Configure_UnitAuras
+	function NP:AuraContainer_UpdateUnit(nameplate, auras)
+		local unit = nameplate.__unit
+		if not unit or (units[auras] == unit) then return end
+
+		units[auras] = unit
+
+		E:Auras_SetUnit(auras, unit)
 	end
 
 	function NP:AuraContainer_SetActive(nameplate)
@@ -163,7 +173,7 @@ do
 
 				nameplate.ActiveContainers[auras] = true
 
-				E:Auras_SetUnit(auras, nameplate.__unit)
+				NP:AuraContainer_UpdateUnit(nameplate, auras)
 
 				auras:SetEnabled(true)
 				auras:SetShown(true)
@@ -211,6 +221,8 @@ end
 
 function NP:AuraContainer_ConstructAuraTypes(frameType, name)
 	local frame = CreateFrame('Frame', name)
+	frame.nameplateType = frameType
+
 	for which in next, AURA_TYPES do
 		local auras = E:Auras_Create(frame, which)
 		auras:SetEnabled(false)

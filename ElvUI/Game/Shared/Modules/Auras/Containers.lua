@@ -6,8 +6,8 @@ local A = E:GetModule('Auras')
 local UF = E:GetModule('UnitFrames')
 
 local _G = _G
-local ceil, huge = ceil, math.huge
-local strfind, wipe = strfind, wipe
+local wipe, ceil, huge = wipe, ceil, math.huge
+local strfind, strmatch = strfind, strmatch
 local floor, next, type = floor, next, type
 local hooksecurefunc = hooksecurefunc
 
@@ -105,19 +105,15 @@ function E:Auras_OnEvent(event, arg1)
 				UF:AuraBars_UpdateFilter(container, eventUnit)
 				E:Auras_SetContainer(container)
 			else -- for target frame
-				E:Auras_AssistUnit(container, eventUnit)
-
-				container:UpdateAllAuras()
+				E:Auras_AssistUnit(container, eventUnit, true)
 			end
 		end
 	elseif event == 'GROUP_ROSTER_UPDATE' then
-		if container.unit and E.AuraGroupHeaders[container.unitframeType] then
-			E:Auras_AssistUnit(container, container.unit)
-
-			container:UpdateAllAuras()
+		if container.unit then
+			E:Auras_AssistUnit(container, container.unit, true)
 		end
 	elseif arg1 and (arg1 == container.unit) then
-		E:Auras_AssistUnit(container, arg1)
+		E:Auras_AssistUnit(container, arg1, true)
 	end
 end
 
@@ -1004,25 +1000,37 @@ end
 function E:Auras_ToggleEnable(container, shown)
 	if not container then return end
 
-	local allowed = container.allowEnable and (not container.isHighlight or container.canAssist)
+	local state
+	local gated = E.AuraGroupHeaders[container.unitframeType] and not container.forceShowAuras
+	local allowed = container.allowEnable and (not container.isHighlight or container.canReach) and (not gated or container.canAssist)
 	if not allowed then
-		container:SetEnabled(false)
+		state = false
 	elseif shown ~= nil then
-		container:SetEnabled(shown)
+		state = shown
 	else
 		local parent = container:GetParent()
 		if container.isHighlight then
 			parent = parent:GetParent()
 		end
 
-		container:SetEnabled(not parent or parent:IsShown())
+		state = not parent or parent:IsShown()
+	end
+
+	if state ~= container:IsEnabled() then
+		container:SetEnabled(state)
+
+		return true
 	end
 end
 
-function E:Auras_AssistUnit(container, unit)
-	container.canAssist = UnitCanAssist('player', unit, true, true)
+function E:Auras_AssistUnit(container, unit, update)
+	container.canReach = UnitCanAssist('player', unit, true, true)
+	container.canAssist = UnitCanAssist('player', unit)
 
-	E:Auras_ToggleEnable(container)
+	local changed = E:Auras_ToggleEnable(container)
+	if not changed and update then -- only update when the
+		container:UpdateAllAuras() -- state doesnt change
+	end
 end
 
 function E:Auras_GroupUnit(container, unit)
@@ -1055,15 +1063,20 @@ function E:Auras_SetEnabled(enabled)
 	self.events:SetScript('OnEvent', enabled and E.Auras_OnEvent or nil)
 end
 
-function E:Auras_CreateEventFrame(container)
+function E:Auras_CreateEventFrame(container, frameType)
 	local events = CreateFrame('Frame', nil, container)
 
 	events:RegisterEvent('UNIT_FACTION') -- highlight: faction changes
 	events:RegisterEvent('UNIT_FLAGS') -- highlight: flags changes
 	events:RegisterEvent('UNIT_PHASE') -- highlight: phase changes
-	events:RegisterEvent('PLAYER_TARGET_CHANGED') -- aurabar: switch friendship
-	events:RegisterEvent('PLAYER_FOCUS_CHANGED') -- aurabar: switch friendship
-	events:RegisterEvent('GROUP_ROSTER_UPDATE') -- raid: when people move between groups
+
+	if E.AuraGroupHeaders[frameType] then
+		events:RegisterEvent('GROUP_ROSTER_UPDATE') -- raid: when people move between groups
+	elseif strmatch(frameType, '^focus') then
+		events:RegisterEvent('PLAYER_FOCUS_CHANGED') -- aurabar: switch friendship
+	elseif strmatch(frameType, '^target') then
+		events:RegisterEvent('PLAYER_TARGET_CHANGED') -- aurabar: switch friendship
+	end
 
 	return events
 end
@@ -1084,9 +1097,13 @@ function E:Auras_Create(parent, which, override)
 	container.buttons = {}
 	container.layout = {}
 	container.filters = {}
-	container.events = E:Auras_CreateEventFrame(container)
 
-	hooksecurefunc(container, 'SetEnabled', E.Auras_SetEnabled)
+	local frameType = parent and parent.unitframeType
+	if frameType then -- we only need events for unitframes
+		container.events = E:Auras_CreateEventFrame(container, frameType)
+
+		hooksecurefunc(container, 'SetEnabled', E.Auras_SetEnabled)
+	end
 
 	return container
 end
