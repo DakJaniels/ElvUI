@@ -230,11 +230,16 @@ function S:WorldMapFrame()
 	local DetailsFrame = QuestMapFrame.DetailsFrame
 	local RewardsContainer = DetailsFrame.RewardsFrameContainer
 
+	DetailsFrame:ClearAllPoints()
+	DetailsFrame:Point('TOPLEFT', QuestsFrame)
+	DetailsFrame:Point('BOTTOMRIGHT', QuestsFrame)
+
 	S:HandleButton(DetailsFrame.AbandonButton, true)
 	DetailsFrame.ShareButton:StripTextures() -- strip the Blizz Art around from it
 	S:HandleButton(DetailsFrame.ShareButton, true)
 	S:HandleButton(DetailsFrame.TrackButton, true)
 
+	DetailsFrame.BorderFrame:SetInside(DetailsFrame, 0, 0)
 	DetailsFrame.BorderFrame:SetAlpha(0)
 	DetailsFrame.AbandonButton:SetFrameLevel(5)
 	DetailsFrame.ShareButton:SetFrameLevel(5)
@@ -252,7 +257,7 @@ function S:WorldMapFrame()
 	if DetailsBg then
 		DetailsBg:ClearAllPoints()
 		DetailsBg:Point('TOPLEFT', 0, -41)
-		DetailsBg:Point('BOTTOMRIGHT', RewardsContainer.RewardsFrame)
+		DetailsBg:Point('BOTTOMRIGHT', RewardsContainer)
 	end
 
 	if E.private.skins.parchmentRemoverEnable then
