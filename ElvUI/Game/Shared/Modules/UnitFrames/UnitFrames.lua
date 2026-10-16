@@ -24,6 +24,7 @@ local UnitExists = UnitExists
 local UnitGUID = UnitGUID
 local UnitIsEnemy = UnitIsEnemy
 local UnitIsFriend = UnitIsFriend
+local UnitIsGameObject = UnitIsGameObject
 local UnitReaction = UnitReaction
 local UnregisterStateDriver = UnregisterStateDriver
 
@@ -1883,7 +1884,6 @@ do
 	local MAX_BOSS_FRAMES = 5
 
 	local handledUnits = {}
-	local handledPlates = {}
 	local disabledBoss = false
 	local disabledParty = false
 	local disabledArena = false
@@ -1921,10 +1921,16 @@ do
 			if E.private.nameplates.enable then
 				local frame = GetNamePlateForUnit(unit)
 				local plate = frame and frame.UnitFrame
-				if plate and not handledPlates[plate] then
-					handledPlates[plate] = true
-
-					HideFrame(plate, 1)
+				-- which 2: alpha only. Do not lock parent; UnitFrame is pooled and
+				-- a SetParent hook taints OnNamePlateAdded so the previous unit name sticks.
+				-- Game objects keep alpha so CompactUnitFrame_UpdateName stays visible.
+				-- ElvUI's own name tag is hidden for those plates and would otherwise keep the previous unit.
+				if plate then
+					if UnitIsGameObject and UnitIsGameObject(unit) then
+						plate:SetAlpha(1)
+					else
+						HideFrame(plate, 2)
+					end
 				end
 			end
 		elseif E.private.unitframe.enable and not handledUnits[unit] then

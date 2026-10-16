@@ -497,6 +497,33 @@ function NP:DisablePlate(nameplate, nameOnly, hideRaised, updateBase)
 		end
 	else
 		NP:ReparentElements(NP.LevelNameonly, nameplate, E.HiddenFrame)
+
+		-- These stay on the nameplate after the bars are hidden. Clear them so a
+		-- recycled plate cannot keep the previous unit's name on a game object.
+		if nameplate.Name then
+			nameplate.Name:SetText('')
+			nameplate.Name:Hide()
+		end
+
+		if nameplate.Title then
+			nameplate.Title:SetText('')
+			nameplate.Title:Hide()
+		end
+
+		if nameplate.Level then
+			nameplate.Level:SetText('')
+			nameplate.Level:Hide()
+		end
+
+		if nameplate.Health and nameplate.Health.Text then
+			nameplate.Health.Text:SetText('')
+			nameplate.Health.Text:Hide()
+		end
+
+		if nameplate.Power and nameplate.Power.Text then
+			nameplate.Power.Text:SetText('')
+			nameplate.Power.Text:Hide()
+		end
 	end
 end
 
@@ -769,6 +796,10 @@ end
 function NP:NAME_PLATE_UNIT_ADDED(_, unit)
 	if not unit then unit = self.__unit end
 
+	-- UnitFrame is pooled. Capture the live frame for this add; ReleaseUnitFrame nils it before REMOVED.
+	local plateBase = self:GetParent()
+	self.blizzPlate = plateBase and plateBase.UnitFrame
+
 	self.widgetsOnly = E.Modern and self.blizzPlate and UnitNameplateShowsWidgetsOnly(unit)
 	self.widgetSet = E.Modern and UnitWidgetSet(unit)
 	self.classification = UnitClassification(unit) -- also updated by ClassificationIndicator
@@ -869,17 +900,22 @@ function NP:NAME_PLATE_UNIT_REMOVED(event, unit)
 		NP:AuraContainer_RemoveActive(self)
 	end
 
-	if self.softTargetFrame then
-		self.softTargetFrame:SetParent(self.blizzPlate)
+	local blizzardUnitFrame = self.blizzPlate
+	if self.softTargetFrame and blizzardUnitFrame then
+		self.softTargetFrame:SetParent(blizzardUnitFrame)
 		self.softTargetFrame:SetIgnoreParentAlpha(false)
 	end
 
-	if self.widgetContainer then -- Place Widget Back on Blizzard Plate
-		self.widgetContainer:SetParent(self.blizzPlate)
+	if self.widgetContainer and blizzardUnitFrame then -- Place Widget Back on Blizzard Plate
+		self.widgetContainer:SetParent(blizzardUnitFrame)
 		self.widgetContainer:SetIgnoreParentAlpha(false)
 		self.widgetContainer:ClearAllPoints()
-		self.widgetContainer:SetPoint('TOP', self.blizzPlate.castBar, 'BOTTOM')
+		self.widgetContainer:SetPoint('TOP', blizzardUnitFrame.castBar, 'BOTTOM')
 	end
+
+	self.blizzPlate = nil
+	self.softTargetFrame = nil
+	self.widgetContainer = nil
 
 	-- these can appear on SoftTarget selfs and they aren't
 	-- from NAME_PLATE_UNIT_ADDED which means, they will still be shown
