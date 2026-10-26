@@ -227,6 +227,12 @@ P.general = {
 				yOffset = 0,
 				hide = false,
 			},
+			externalEvent = {
+				scale = 0.8,
+				position = 'TOPLEFT',
+				xOffset = 0,
+				yOffset = 0,
+			},
 			tracking = {
 				scale = E.Modern and 1.2 or 0.65,
 				position = 'BOTTOMLEFT',
@@ -1461,6 +1467,7 @@ P.chat = {
 	hideChatToggles = false,
 	hideCopyButton = false,
 	useAltKey = false,
+	countCharacters = true,
 	classColorMentionsChat = true,
 	enableCombatRepeat = true,
 	numAllowedCombatRepeat = 5,
