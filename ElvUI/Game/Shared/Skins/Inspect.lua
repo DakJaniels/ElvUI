@@ -137,7 +137,7 @@ function S:Blizzard_InspectUI()
 		InspectModelFrame.backdrop:Point('BOTTOMRIGHT', E.Border, -(E.Border+1))
 
 		-- Re-add the overlay texture which was removed via StripTextures
-		InspectModelFrame.BackgroundOverlay:SetColorTexture(0, 0, 0)
+		InspectModelFrame.BackgroundOverlay:SetColorTexture(0, 0, 0, E.Forever and 0.5 or 1)
 	else
 		_G.InspectPaperDollFrame:StripTextures()
 
@@ -185,13 +185,15 @@ function S:Blizzard_InspectUI()
 	if E.Modern then
 		for _, Slot in next, { _G.InspectPaperDollItemsFrame:GetChildren() } do
 			if Slot.icon then -- the item slots, not the talents button
-				S:HandleIcon(Slot.icon, true)
-				Slot.icon.backdrop:OffsetFrameLevel(nil, Slot)
-				Slot.icon:SetInside()
 				Slot:StripTextures()
 				Slot:StyleButton()
 
+				S:HandleIcon(Slot.icon, true)
+				S:HandleItemButtonCrop(Slot)
 				S:HandleIconBorder(Slot.IconBorder, Slot.icon.backdrop)
+
+				Slot.icon.backdrop:OffsetFrameLevel(nil, Slot)
+				Slot.icon:SetInside()
 			end
 		end
 	else
